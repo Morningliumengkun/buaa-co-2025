@@ -1,0 +1,449 @@
+lui $s0, 0x0001      # $s0 = 00010000
+lui $s1, 0x0010      # $s1 = 00100000
+lui $s2, 0x0100      # $s2 = 01000000
+lui $s3, 0x1000      # $s3 = 10000000
+ori $s4, $0, 0x0001  # $s4 = 00000001
+ori $s5, $0, 0x0010  # $s5 = 00000010
+ori $s6, $0, 0x0100  # $s6 = 00000100 
+ori $s7, $0, 0x1000  # $s7 = 00001000
+
+ori $a0, $a0, 0x1234
+sw $a0, 0($0)
+ori $a1, $a1, 0xa5d7
+sw $a1, 0x0100($0)
+ori $a2, $a2, 0x9fd4
+sw $a2, 8($0)
+ori $a3, $a3, 0x4892
+sw $a3, 0x0010($0)
+sw $s6, 12($0)
+sw $s7, 20($0)
+
+# ---------- Stall ---------- #
+# ----- rs_stall ----- #
+# E_lw_rt and add_rs
+lw $t0, 8($0)
+lw $t0, 0($0)            # $t0 = 0x1234
+add $t1, $t0, $s0	# $t1 = 0x11234
+
+# E_lw_rt and sub_rs
+lw $t2, 8($0)
+lw $t2, 0($0)		# $t2 = 0x1234
+sub $t1, $t2, $s1	# $t1 = fushu
+
+# E_lw_rt and ori_rs
+lw $t0, 12($0)
+lw $t0, 8($0)		
+ori $t1, $t0, 0x1234
+
+# E_lw_rt and beq_rs
+# M_lw_rt and beq_rs
+lw $v0, 0($0)
+beq $v0, $0, test_end
+nop
+
+# add_rd and beq_rs
+add $v1, $s3, $s7 
+add $v1, $s0, $s1
+beq $v1, $0, test_end
+nop
+
+# sub_rd and beq_rs
+sub $k0, $s3, $s5
+sub $k0, $s0, $s4
+beq $k0, $s0, test_end
+nop
+
+# ori_rt and beq_rt
+ori $k1, $s6, 0x2983
+ori $k1, $s2, 0x1234
+beq $k1, $s2, test_end
+nop
+
+# E_lw_rt and lw_rs
+lw $t3, 20($0)
+lw $t3, 12($0)		# $t3 = 0x00000100
+lw $t4, 0($t3)
+
+# E_lw_rt and sw_rs
+lw $t5, 12($0)
+lw $t5, 20($0)
+sw $s0, 0($t5)
+
+# ori_rt and jr
+ori $t0, $0, 0x30c8
+jr $t0
+
+# add_rt and jr
+ori $t1, $0, 0x000c
+add $t2, $t0, $t1
+jr $t2
+
+# E_lw_rt and jr
+# M_lw_rt and jr
+ori $t3, $0, 0x30e4
+sw $t3, 0x2000($0)
+lw $t4, 0x2000($0)
+jr $t3
+
+
+# ----- rt_stall ----- #
+# E_lw_rt and add_rt
+lw $t7, 12($0)
+lw $t7, 0($0)
+add $k0, $s3, $t7
+
+# E_lw_rt and sub_rt
+lw $t7, 20($0)
+lw $t7, 4($0)
+sub $k1, $s2, $t7
+
+# E_lw_rt and beq_rt
+# M_lw_rt and beq_rt
+lw $t7, 0x2ffc($0)
+beq $a1, $t7, test_end
+nop
+
+# E_add_rd and beq_rt
+lui $t0, 0
+add $t0, $0, $s0
+beq $0, $t0, test_end
+nop
+
+# E_sub_rd and beq_rt
+lui $t1, 0
+sub $t1, $s1, $0
+beq $0, $t1, test_end
+nop
+
+# E_ori_rt and beq_rt
+lui $t0, 0
+ori $t0, $0, 0x0010
+beq $0, $t0, test_end
+nop
+
+
+# ---------- Transform ---------- #
+# ----- D_for_rs ----- #
+# D_for_rs <= E_PC + 8  add
+lui $t0, 0
+jal label1
+add $t0, $ra, $0
+label1:
+
+# D_for_rs <= E_Imm32  sub
+lui $t0, 0
+lui $t0, 0x3984
+sub $t1, $t0, $s6
+
+# D_for_rs <= M_PC + 8  ori
+lui $t0, 0
+jal label2
+nop
+label2:
+ori $t0, $ra, 0x2832
+
+# D_for_rs <= M_Imm32  beq
+lui $t0, 0x1000
+lui $t0, 0x3903
+nop
+beq $t0, $s3, test_end
+nop
+
+# D_for_rs <= M_ALU_result  lw
+lui $t0, 0
+ori $t0, $t0, 0x0100
+nop
+lw $t1, 0($t0)
+
+# D_for_rs <= W_PC + 8  add
+jal label3
+nop
+label3:
+nop
+add $t7, $ra, $0
+
+# D_for_rs <= W_Imm32  sub
+lui $t0, 0x18e3
+nop
+nop
+sub $t1, $t0, $s5
+
+# D_for_rs <= W_ALU_result
+add $t2, $t1, $t0
+nop
+nop
+ori $t3, $t2, 0x3840
+
+# D_for_rs <= W_RD
+lw $t3, 12($0)
+nop
+nop
+add $t4, $t3, $s3
+
+# ----- D_for_rt ----- #
+# D_for_rt <= E_PC + 8  add
+lui $t0, 0
+jal label4
+add $t0, $0, $ra
+label4:
+
+# D_for_rt <= E_Imm32  sub
+lui $t0, 0
+lui $t0, 0x3984
+sub $t1, $s6, $t0
+
+# D_for_rt <= M_PC + 8  add
+lui $t0, 0
+jal label5
+nop
+label5:
+add $t0, $s3, $t0
+
+# D_for_rt <= M_Imm32  beq
+lui $t0, 0x1000
+lui $t0, 0x3903
+nop
+beq $s3, $t0, test_end
+nop
+
+# D_for_rt <= M_ALU_result  sw
+lui $t0, 0
+ori $t0, $t0, 0x0100
+ori $t1, $0, 0x1093
+nop
+sw $t1, 32($t0)
+
+# D_for_rt <= W_PC + 8  add
+jal label6
+nop
+label6:
+nop
+add $t7, $0, $ra
+
+# D_for_rs <= W_Imm32  sub
+lui $t0, 0x88e3
+nop
+nop
+sub $t1, $s5, $t0
+
+# D_for_rs <= W_ALU_result
+add $t2, $t1, $t0
+nop
+nop
+add $t3, $s6, $t2
+
+# D_for_rs <= W_RD
+lw $t3, 12($0)
+nop
+nop
+add $t4, $s3, $t3
+
+# ----- E_for_rs ----- #
+# E_for_rs <= M_ALU_result  lw
+lui $t0, 0
+ori $t0, $t0, 0x0100
+lw $t1, 0($t0)
+
+# E_for_rs <= W_RD
+lw $t3, 12($0)
+nop
+add $t4, $t3, $s3
+
+# ----- E_for_rt ----- #
+# E_for_rt <= M_ALU_result  sw
+ori $t0, $t0, 0x0100
+ori $t1, $0, 0x1093
+nop
+sw $t1, 32($t0)
+
+# E_for_rs <= W_RD
+lw $t3, 12($0)
+nop
+nop
+add $t4, $s3, $t3
+
+# ----- M_for_rt ----- #
+lw $t0, 0x0100($0)
+nop
+nop
+sw $t0, 48($0)
+
+
+# ---------- fake ---------- #
+# ----- rs_stall ----- #
+# E_lw_rt and add_rs
+lw $0, 0($0)            # $t0 = 0x1234
+add $t1, $0, $s0	# $t1 = 0x11234
+
+# E_lw_rt and sub_rs
+lw $0, 0x0100($0)		# $t2 = 0x1234
+sub $t1, $0, $s1	# $t1 = fushu
+
+# E_lw_rt and ori_rs
+lw $0, 8($0)		
+ori $t1, $t0, 0x1234
+
+# E_lw_rt and beq_rs
+# M_lw_rt and beq_rs
+lw $0, 0($0)
+beq $0, $a0, test_end
+nop
+
+# add_rd and beq_rs
+add $0, $s0, $s1
+beq $at, $0, next
+nop
+beq $0, $0, test_end
+next:
+
+# ori_rt and beq_rt
+ori $0, $s2, 0x1234
+beq $0, $s2, test_end
+nop
+
+# E_lw_rt and lw_rs
+lw $0, 12($0)		# $t3 = 0x00000100
+lw $t4, 0($0)
+
+# E_lw_rt and sw_rs
+lw $0, 20($0)
+sw $s0, 0($0)
+
+# ----- rt_stall ----- #
+# E_lw_rt and add_rt
+lw $0, 0($0)
+add $k0, $s3, $0
+
+# E_lw_rt and sub_rt
+lw $0, 4($0)
+sub $k1, $s2, $0
+
+# E_lw_rt and beq_rt
+# M_lw_rt and beq_rt
+lw $0, 0x2ffc($0)
+beq $a1, $0, test_end
+nop
+
+# E_add_rd and beq_rt
+add $0, $0, $s0
+beq $a0, $0, test_end
+nop
+
+# E_sub_rd and beq_rt
+sub $0, $s1, $0
+beq $a1, $0, test_end
+nop
+
+# E_ori_rt and beq_rt
+ori $0 $t0, 0
+beq $t0, $0, test_end
+nop
+
+
+# ---------- Transform ---------- #
+# ----- D_for_rs ----- #
+# D_for_rs <= E_Imm32  sub
+lui $0, 0x3984
+sub $t1, $0, $s6
+
+# D_for_rs <= M_Imm32  beq
+lui $0, 0x1000
+nop
+beq $0, $s3, test_end
+nop
+
+# D_for_rs <= M_ALU_result  lw
+ori $0, $t0, 0x0100
+nop
+lw $t1, 0($0)
+
+# D_for_rs <= W_Imm32  sub
+lui $0, 0x18e3
+nop
+nop
+sub $t1, $0, $s5
+
+# D_for_rs <= W_ALU_result
+add $0, $t1, $t0
+nop
+nop
+ori $t3, $0, 0x3840
+
+# D_for_rs <= W_RD
+lw $0, 12($0)
+nop
+nop
+add $t4, $0, $s3
+
+# ----- D_for_rt ----- #
+# D_for_rt <= E_Imm32  sub
+lui $0, 0x3984
+sub $t1, $s6, $0
+
+# D_for_rt <= M_Imm32  beq
+lui $0, 0x1000
+nop
+beq $s3, $0, test_end
+nop
+
+# D_for_rt <= M_ALU_result  sw
+lui $t0, 0
+ori $t0, $t0, 0x0100
+nop
+nop
+nop
+nop
+nop
+ori $0, $0, 0x1093
+nop
+sw $0, 32($t0)
+
+# D_for_rs <= W_Imm32  sub
+lui $0, 0x88e3
+nop
+nop
+sub $t1, $s5, $0
+
+# D_for_rs <= W_ALU_result
+add $0, $t1, $t0
+nop
+nop
+add $t3, $s6, $0
+
+# D_for_rs <= W_RD
+lw $0, 12($0)
+nop
+nop
+add $t4, $s3, $0
+
+# ----- E_for_rs ----- #
+# E_for_rs <= M_ALU_result  lw
+ori $0, $0, 0x0100
+lw $t1, 0($0)
+
+# E_for_rs <= W_RD
+lw $0, 12($0)
+nop
+add $t4, $0, $s3
+
+# ----- E_for_rt ----- #
+# E_for_rt <= M_ALU_result  sw
+ori $0, $0, 0x1093
+nop
+sw $0, 32($t0)
+
+# E_for_rs <= W_RD
+lw $0, 12($0)
+nop
+nop
+add $t4, $s3, $0
+
+# ----- M_for_rt ----- #
+lw $0, 0x0100($0)
+nop
+nop
+sw $0, 48($0)
+
+test_end:
+beq $0, $0, test_end
+nop

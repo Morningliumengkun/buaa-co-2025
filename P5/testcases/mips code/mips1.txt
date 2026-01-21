@@ -1,0 +1,96 @@
+.text
+.globl main
+main:
+
+lui $sp, 0x1000
+ori $sp, $sp, 0x8000
+# (ExcCode=8)
+syscall
+#  (ExcCode=4)
+
+lui $t0, 0x0000
+ori $t0, $t0, 0x0001
+jr $t0
+#  (ExcCode=4)
+
+lui $t0, 0x0000
+ori $t0, $t0, 0x2000
+jr $t0
+#  (ExcCode=4)
+
+lui $t0, 0x7000
+ori $t0, $t0, 0x0000
+jr $t0
+#  (ExcCode=4)
+
+lui $t0, 0x1000
+ori $t0, $t0, 0x0003
+lw $t1, 0($t0)
+#  (ExcCode=4)
+
+lui $t0, 0xFFFF
+ori $t0, $t0, 0xFFFC # $t0 = 0xFFFFFFFC
+lw $t1, 8($t0) # 0xFFFFFFFC + 8 = 0x00000004 
+#  (ExcCode=4)
+
+lui $t0, 0x3000
+ori $t0, $t0, 0x0000
+lw $t1, 0($t0)
+#  (ExcCode=5)
+
+lui $t0, 0x1000
+ori $t0, $t0, 0x0001
+sw $t1, 0($t0)
+#  (ExcCode=5)
+
+lui $t0, 0xFFFF
+ori $t0, $t0, 0xFFFC # $t0 = 0xFFFFFFFC
+sw $t1, 8($t0) # 0xFFFFFFFC + 8 = 0x00000004 (溢出)
+#  (ExcCode=5)
+
+lui $t0, 0x3000
+ori $t0, $t0, 0x0000
+sw $t1, 0($t0)
+#  (ExcCode=10)
+
+mult $t0, $t1#  (ExcCode=12)
+lui $t0, 0x7FFF
+ori $t0, $t0, 0xFFFF # $t0 = 0x7FFFFFFF 
+lui $t1, 0x0000
+ori $t1, $t1, 0x0001 # $t1 = 0x00000001
+add $t2, $t0, $t1
+
+#  (ExcCode=12)
+lui $t0, 0x8000
+ori $t0, $t0, 0x0000 # $t0 = 0x80000000 
+lui $t1, 0xFFFF
+ori $t1, $t1, 0xFFFF # $t1 = 0xFFFFFFFF (-1)
+sub $t2, $t0, $t1 
+
+#  (ExcCode=12)
+lui $t0, 0x7FFF
+ori $t0, $t0, 0xFFFF # $t0 = 0x7FFFFFFF 
+lui $t1, 0xFFFF
+ori $t1, $t1, 0xFFFF # $t1 = 0xFFFFFFFF (-1)
+sub $t2, $t0, $t1 
+
+#  (ExcCode=12)
+lui $t0, 0x8000
+ori $t0, $t0, 0x0000 # $t0 = 0x80000000 
+lui $t1, 0x0000
+ori $t1, $t1, 0x0001 # $t1 = 0x00000001 
+sub $t2, $t0, $t1 
+
+# the entrance (0x4180)
+.ktext 0x4180
+exception_handler:
+
+mfc0 $k0, $12 
+mfc0 $k1, $13 
+mfc0 $k0, $14 
+
+mfc0 $k0, $14 
+addi $k0, $k0, 4 
+mtc0 $k0, $14 
+
+eret

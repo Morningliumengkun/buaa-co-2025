@@ -1,0 +1,37 @@
+ori $17,$0,13
+ori $11,$0,11
+ori $2,$0,3
+ori $10,$0,12
+ori $9,$0,17
+ori $1,$0,11
+ori $26,$0,31
+ori $1,$0,13
+beq $10,$16,branch1
+add $22,$5,$15
+ori $0,$7,23797
+beq $19,$9,branch2
+lui $18,7408
+ori $19,$22,34344
+beq $8,$10,branch3
+ori $8,$22,46155
+sw $17,16($17)
+beq $16,$22,branch4
+sub $14,$3,$22
+branch2:
+add $14,$21,$14
+nop
+lui $27,53262
+branch3:
+branch4:
+beq $15,$13,branch5
+nop
+add $4,$12,$21
+nop
+nop
+ori $18,$17,12898
+branch5:
+sw $6,-36($11)
+lui $15,48606
+branch1:
+sw $20,-4($2)
+ori $20,$3,36870
